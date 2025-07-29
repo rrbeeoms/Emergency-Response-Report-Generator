@@ -1,12 +1,13 @@
+print("""
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Emergency Response Report Generator</title>
+    <title>緊急應變小組回報產生器</title>
     <style>
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            font-family: 'Microsoft JhengHei', '微軟正黑體', sans-serif;
             background-color: #f0f2f5;
             display: flex;
             justify-content: center;
@@ -61,10 +62,10 @@
             top: 50%;
             transform: translateY(-50%);
             color: #888;
-            pointer-events: none;
+            pointer-events: none; /* Allows clicking through the text */
         }
         .time-group input {
-           padding-right: 40px; /* Space for the unit */
+           padding-right: 30px; /* Space for the unit */
         }
         button {
             width: 100%;
@@ -97,7 +98,7 @@
             min-height: 80px;
             line-height: 1.6;
             color: #495057;
-            white-space: pre-wrap;
+            white-space: pre-wrap; /* Ensures text wraps */
             word-wrap: break-word;
         }
     </style>
@@ -105,37 +106,38 @@
 <body>
 
     <div class="container">
-        <h1>Emergency Response Report Generator</h1>
+        <h1>緊急應變小組回報產生器</h1>
 
         <div class="form-group">
-            <label for="eventName">Event Name</label>
-            <input type="text" id="eventName" value="0728 Heavy Rain">
+            <label for="eventName">事件名稱</label>
+            <input type="text" id="eventName" value="0728豪雨">
         </div>
 
         <div class="form-group">
-            <label>Report Date & Time (ROC Year)</label>
+            <label>回報日期與時間</label>
             <div class="time-group">
-                <div class="input-wrapper"><input type="number" id="rocYear"><span class="unit">Year</span></div>
-                <div class="input-wrapper"><input type="number" id="month"><span class="unit">Mon</span></div>
-                <div class="input-wrapper"><input type="number" id="day"><span class="unit">Day</span></div>
-                <div class="input-wrapper"><input type="number" id="hour" min="0" max="23"><span class="unit">Hr</span></div>
-                <div class="input-wrapper"><input type="number" id="minute" min="0" max="59"><span class="unit">Min</span></div>
+                <div class="input-wrapper"><input type="number" id="rocYear"><span class="unit">年</span></div>
+                <div class="input-wrapper"><input type="number" id="month"><span class="unit">月</span></div>
+                <div class="input-wrapper"><input type="number" id="day"><span class="unit">日</span></div>
+                <div class="input-wrapper"><input type="number" id="hour" min="0" max="23"><span class="unit">時</span></div>
+                <div class="input-wrapper"><input type="number" id="minute" min="0" max="59"><span class="unit">分</span></div>
             </div>
         </div>
 
         <div class="form-group">
-            <label for="personName">Reporting Officer</label>
-            <input type="text" id="personName" value="Cheng-Yen, Tsou">
+            <label for="personName">值勤人員</label>
+            <input type="text" id="personName" value="鄒承諺">
         </div>
 
-        <button id="generateBtn">Generate Report</button>
+        <button id="generateBtn">產生回報內容</button>
         
         <div id="result"></div>
         
-        <button id="copyBtn">Copy Content</button>
+        <button id="copyBtn">複製內容</button>
     </div>
 
     <script>
+        // --- DOM Element Selection ---
         const eventNameInput = document.getElementById('eventName');
         const rocYearInput = document.getElementById('rocYear');
         const monthInput = document.getElementById('month');
@@ -147,58 +149,88 @@
         const copyBtn = document.getElementById('copyBtn');
         const resultDiv = document.getElementById('result');
 
+        // --- Functions ---
+
+        /**
+         * Sets the form to the current date and time.
+         * The year is converted to ROC year.
+         */
         function initializeDateTime() {
             const now = new Date();
-            rocYearInput.value = now.getFullYear() - 1911;
-            monthInput.value = now.getMonth() + 1;
-            dayInput.value = now.getDate();
-            hourInput.value = now.getHours();
-            minuteInput.value = now.getMinutes();
+            const rocYear = now.getFullYear() - 1911;
+            const month = now.getMonth() + 1; // getMonth() is 0-indexed
+            const day = now.getDate();
+            const hour = now.getHours();
+            const minute = now.getMinutes();
+
+            rocYearInput.value = rocYear;
+            monthInput.value = month;
+            dayInput.value = day;
+            hourInput.value = hour;
+            minuteInput.value = minute;
         }
 
+        /**
+         * Reads all input values and generates the report string.
+         */
         function generateReport() {
             const eventName = eventNameInput.value;
             const year = rocYearInput.value;
             const month = monthInput.value;
             const day = dayInput.value;
-            const hour = String(hourInput.value).padStart(2, '0');
-            const minute = String(minuteInput.value).padStart(2, '0');
+            const hour = hourInput.value;
+            const minute = minuteInput.value;
             const personName = personNameInput.value;
 
-            const reportText = `The ${eventName} Emergency Response Team reports to the Railway Bureau officer on duty (${personName}) at ${hour}:${minute} on ${month}/${day}, ROC year ${year}. All is normal in this division's work area.`;
+            const reportText = `${eventName}緊急應變小組${year}年${month}月${day}日${hour}時${minute}分回報鐵道局值勤人員（${personName}）本分局工區一切正常`;
             
             resultDiv.textContent = reportText;
         }
 
+        /**
+         * Copies the generated report text to the clipboard.
+         */
         function copyToClipboard() {
             const textToCopy = resultDiv.textContent;
             if (!textToCopy) {
-                alert('Nothing to copy! Please generate the report first.');
+                alert('沒有內容可以複製！請先產生回報內容。');
                 return;
             }
 
             navigator.clipboard.writeText(textToCopy).then(() => {
+                // Success feedback
                 const originalText = copyBtn.textContent;
-                copyBtn.textContent = 'Copied!';
+                copyBtn.textContent = '已複製！';
                 copyBtn.style.backgroundColor = '#218838';
                 setTimeout(() => {
                     copyBtn.textContent = originalText;
                     copyBtn.style.backgroundColor = '#28a745';
                 }, 2000);
             }).catch(err => {
-                console.error('Failed to copy text: ', err);
-                alert('Copy failed. Your browser might not support this feature.');
+                // Error feedback
+                console.error('無法複製文字: ', err);
+                alert('複製失敗，您的瀏覽器可能不支援此功能。');
             });
         }
+
+        // --- Event Listeners ---
         
+        // Generate report when the button is clicked
         generateBtn.addEventListener('click', generateReport);
+        
+        // Copy text when the button is clicked
         copyBtn.addEventListener('click', copyToClipboard);
 
+        // --- Initial Execution ---
+        
+        // Set the initial date and time when the page loads
         document.addEventListener('DOMContentLoaded', () => {
             initializeDateTime();
+            // Generate the report with the initial default values
             generateReport();
         });
     </script>
 
 </body>
 </html>
+""")
