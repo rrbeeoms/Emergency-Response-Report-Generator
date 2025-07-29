@@ -18,7 +18,7 @@
         }
         .container {
             background-color: #ffffff;
-            padding: 30px;
+            padding: 20px; /* 在手機上稍微減少邊距 */
             border-radius: 10px;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
             width: 100%;
@@ -28,6 +28,7 @@
             text-align: center;
             color: #1c2a5c;
             margin-bottom: 25px;
+            font-size: 24px; /* 調整標題大小 */
         }
         .form-group {
             margin-bottom: 20px;
@@ -50,10 +51,13 @@
             display: flex;
             gap: 10px;
             align-items: center;
+            flex-wrap: wrap; /* <-- 這就是關鍵的修改！允許項目換行 */
         }
         .time-group .input-wrapper {
             flex: 1;
+            min-width: 60px; /* 給每個輸入框一個最小寬度，避免過度擠壓 */
             position: relative;
+            margin-bottom: 5px; /* 為換行後的項目增加一點垂直間距 */
         }
         .time-group .unit {
             position: absolute;
@@ -61,10 +65,10 @@
             top: 50%;
             transform: translateY(-50%);
             color: #888;
-            pointer-events: none; /* Allows clicking through the text */
+            pointer-events: none;
         }
         .time-group input {
-           padding-right: 30px; /* Space for the unit */
+           padding-right: 30px; 
         }
         button {
             width: 100%;
@@ -97,7 +101,7 @@
             min-height: 80px;
             line-height: 1.6;
             color: #495057;
-            white-space: pre-wrap; /* Ensures text wraps */
+            white-space: pre-wrap; 
             word-wrap: break-word;
         }
     </style>
@@ -124,7 +128,7 @@
         </div>
 
         <div class="form-group">
-            <label for="personName">回報鐵道局人員</label>
+            <label for="personName">值勤人員</label>
             <input type="text" id="personName" value="魏水木">
         </div>
 
@@ -136,7 +140,6 @@
     </div>
 
     <script>
-        // --- DOM Element Selection ---
         const eventNameInput = document.getElementById('eventName');
         const rocYearInput = document.getElementById('rocYear');
         const monthInput = document.getElementById('month');
@@ -148,16 +151,10 @@
         const copyBtn = document.getElementById('copyBtn');
         const resultDiv = document.getElementById('result');
 
-        // --- Functions ---
-
-        /**
-         * Sets the form to the current date and time.
-         * The year is converted to ROC year.
-         */
         function initializeDateTime() {
             const now = new Date();
             const rocYear = now.getFullYear() - 1911;
-            const month = now.getMonth() + 1; // getMonth() is 0-indexed
+            const month = now.getMonth() + 1;
             const day = now.getDate();
             const hour = now.getHours();
             const minute = now.getMinutes();
@@ -169,9 +166,6 @@
             minuteInput.value = minute;
         }
 
-        /**
-         * Reads all input values and generates the report string.
-         */
         function generateReport() {
             const eventName = eventNameInput.value;
             const year = rocYearInput.value;
@@ -186,9 +180,6 @@
             resultDiv.textContent = reportText;
         }
 
-        /**
-         * Copies the generated report text to the clipboard.
-         */
         function copyToClipboard() {
             const textToCopy = resultDiv.textContent;
             if (!textToCopy) {
@@ -197,7 +188,6 @@
             }
 
             navigator.clipboard.writeText(textToCopy).then(() => {
-                // Success feedback
                 const originalText = copyBtn.textContent;
                 copyBtn.textContent = '已複製！';
                 copyBtn.style.backgroundColor = '#218838';
@@ -206,26 +196,16 @@
                     copyBtn.style.backgroundColor = '#28a745';
                 }, 2000);
             }).catch(err => {
-                // Error feedback
                 console.error('無法複製文字: ', err);
                 alert('複製失敗，您的瀏覽器可能不支援此功能。');
             });
         }
-
-        // --- Event Listeners ---
         
-        // Generate report when the button is clicked
         generateBtn.addEventListener('click', generateReport);
-        
-        // Copy text when the button is clicked
         copyBtn.addEventListener('click', copyToClipboard);
 
-        // --- Initial Execution ---
-        
-        // Set the initial date and time when the page loads
         document.addEventListener('DOMContentLoaded', () => {
             initializeDateTime();
-            // Generate the report with the initial default values
             generateReport();
         });
     </script>
