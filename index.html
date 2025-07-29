@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emergency Response Report Generator</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: #f0f2f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .container {
+            background-color: #ffffff;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 600px;
+        }
+        h1 {
+            text-align: center;
+            color: #1c2a5c;
+            margin-bottom: 25px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #333;
+        }
+        input[type="text"], input[type="number"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            box-sizing: border-box;
+            font-size: 16px;
+        }
+        .time-group {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        .time-group .input-wrapper {
+            flex: 1;
+            position: relative;
+        }
+        .time-group .unit {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #888;
+            pointer-events: none;
+        }
+        .time-group input {
+           padding-right: 40px; /* Space for the unit */
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            font-size: 16px;
+            font-weight: bold;
+            color: #fff;
+            background-color: #007bff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            margin-top: 10px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        #copyBtn {
+            background-color: #28a745;
+        }
+        #copyBtn:hover {
+            background-color: #218838;
+        }
+        #result {
+            margin-top: 25px;
+            padding: 15px;
+            background-color: #e9ecef;
+            border: 1px solid #ced4da;
+            border-radius: 5px;
+            min-height: 80px;
+            line-height: 1.6;
+            color: #495057;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Emergency Response Report Generator</h1>
+
+        <div class="form-group">
+            <label for="eventName">Event Name</label>
+            <input type="text" id="eventName" value="0728 Heavy Rain">
+        </div>
+
+        <div class="form-group">
+            <label>Report Date & Time (ROC Year)</label>
+            <div class="time-group">
+                <div class="input-wrapper"><input type="number" id="rocYear"><span class="unit">Year</span></div>
+                <div class="input-wrapper"><input type="number" id="month"><span class="unit">Mon</span></div>
+                <div class="input-wrapper"><input type="number" id="day"><span class="unit">Day</span></div>
+                <div class="input-wrapper"><input type="number" id="hour" min="0" max="23"><span class="unit">Hr</span></div>
+                <div class="input-wrapper"><input type="number" id="minute" min="0" max="59"><span class="unit">Min</span></div>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="personName">Reporting Officer</label>
+            <input type="text" id="personName" value="Cheng-Yen, Tsou">
+        </div>
+
+        <button id="generateBtn">Generate Report</button>
+        
+        <div id="result"></div>
+        
+        <button id="copyBtn">Copy Content</button>
+    </div>
+
+    <script>
+        const eventNameInput = document.getElementById('eventName');
+        const rocYearInput = document.getElementById('rocYear');
+        const monthInput = document.getElementById('month');
+        const dayInput = document.getElementById('day');
+        const hourInput = document.getElementById('hour');
+        const minuteInput = document.getElementById('minute');
+        const personNameInput = document.getElementById('personName');
+        const generateBtn = document.getElementById('generateBtn');
+        const copyBtn = document.getElementById('copyBtn');
+        const resultDiv = document.getElementById('result');
+
+        function initializeDateTime() {
+            const now = new Date();
+            rocYearInput.value = now.getFullYear() - 1911;
+            monthInput.value = now.getMonth() + 1;
+            dayInput.value = now.getDate();
+            hourInput.value = now.getHours();
+            minuteInput.value = now.getMinutes();
+        }
+
+        function generateReport() {
+            const eventName = eventNameInput.value;
+            const year = rocYearInput.value;
+            const month = monthInput.value;
+            const day = dayInput.value;
+            const hour = String(hourInput.value).padStart(2, '0');
+            const minute = String(minuteInput.value).padStart(2, '0');
+            const personName = personNameInput.value;
+
+            const reportText = `The ${eventName} Emergency Response Team reports to the Railway Bureau officer on duty (${personName}) at ${hour}:${minute} on ${month}/${day}, ROC year ${year}. All is normal in this division's work area.`;
+            
+            resultDiv.textContent = reportText;
+        }
+
+        function copyToClipboard() {
+            const textToCopy = resultDiv.textContent;
+            if (!textToCopy) {
+                alert('Nothing to copy! Please generate the report first.');
+                return;
+            }
+
+            navigator.clipboard.writeText(textToCopy).then(() => {
+                const originalText = copyBtn.textContent;
+                copyBtn.textContent = 'Copied!';
+                copyBtn.style.backgroundColor = '#218838';
+                setTimeout(() => {
+                    copyBtn.textContent = originalText;
+                    copyBtn.style.backgroundColor = '#28a745';
+                }, 2000);
+            }).catch(err => {
+                console.error('Failed to copy text: ', err);
+                alert('Copy failed. Your browser might not support this feature.');
+            });
+        }
+        
+        generateBtn.addEventListener('click', generateReport);
+        copyBtn.addEventListener('click', copyToClipboard);
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeDateTime();
+            generateReport();
+        });
+    </script>
+
+</body>
+</html>
