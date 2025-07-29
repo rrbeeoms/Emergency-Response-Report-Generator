@@ -10,7 +10,7 @@
             background-color: #f0f2f5;
             display: flex;
             justify-content: center;
-            align-items: flex-start; /* 改為頂部對齊 */
+            align-items: flex-start;
             min-height: 100vh;
             margin: 0;
             padding: 20px;
@@ -30,7 +30,6 @@
             margin-bottom: 20px;
             font-size: 24px;
         }
-        /* --- Tab 樣式 --- */
         .tab-nav {
             display: flex;
             border-bottom: 2px solid #dee2e6;
@@ -53,16 +52,9 @@
             border-bottom-color: #fff;
             border-radius: 5px 5px 0 0;
         }
-        .tab-pane {
-            display: none; /* 預設隱藏所有面板 */
-        }
-        .tab-pane.active {
-            display: block; /* 只顯示作用中的面板 */
-        }
-        /* --- 表單通用樣式 --- */
-        .form-group {
-            margin-bottom: 20px;
-        }
+        .tab-pane { display: none; }
+        .tab-pane.active { display: block; }
+        .form-group { margin-bottom: 20px; }
         label {
             display: block;
             font-weight: 600;
@@ -103,7 +95,6 @@
             pointer-events: none;
         }
         .time-group input { padding-right: 30px; }
-        
         button {
             width: 100%;
             padding: 12px;
@@ -120,7 +111,6 @@
         button:hover { background-color: #0056b3; }
         .copy-btn { background-color: #28a745; }
         .copy-btn:hover { background-color: #218838; }
-
         #result, #handoverResult {
             margin-top: 25px;
             padding: 15px;
@@ -140,13 +130,11 @@
     <div class="container">
         <h1>勤務回報產生器</h1>
 
-        <!-- Tab Navigation -->
         <div class="tab-nav">
             <button class="tab-button active" data-tab="emergencyReport">緊急回報</button>
             <button class="tab-button" data-tab="handoverReport">接班回報</button>
         </div>
 
-        <!-- Tab Pane 1: 緊急回報 -->
         <div id="emergencyReport" class="tab-pane active">
             <div class="form-group">
                 <label for="eventName">事件名稱</label>
@@ -163,18 +151,18 @@
                 </div>
             </div>
             <div class="form-group">
-                <label for="personName">鐵道局值勤人員</label>
-                <input type="text" id="personName" value="魏水木">
+                <label for="personName">值勤人員</label>
+                <input type="text" id="personName" value="鄒承諺">
             </div>
             <button id="generateBtn">產生回報內容</button>
             <div id="result"></div>
             <button id="copyBtn" class="copy-btn">複製內容</button>
         </div>
 
-        <!-- Tab Pane 2: 接班回報 -->
         <div id="handoverReport" class="tab-pane">
             <div class="form-group">
-                <label for="handoverPersonName">值班人員</label>
+                <!-- 修改 #1：將「值班人員」改為「鐵道局值班人員」 -->
+                <label for="handoverPersonName">鐵道局值班人員</label>
                 <input type="text" id="handoverPersonName" value="林太祈">
             </div>
             <div class="form-group">
@@ -190,8 +178,12 @@
     </div>
 
     <script>
+        // --- localStorage Keys ---
+        const EVENT_NAME_KEY = 'savedEventName';
+        const HANDOVER_PERSON_KEY = 'savedHandoverPersonName';
+
         // --- DOM Element Selection ---
-        // Tab 1: Emergency Report
+        // ... (其他元素選擇保持不變) ...
         const eventNameInput = document.getElementById('eventName');
         const rocYearInput = document.getElementById('rocYear');
         const monthInput = document.getElementById('month');
@@ -203,22 +195,18 @@
         const copyBtn = document.getElementById('copyBtn');
         const resultDiv = document.getElementById('result');
 
-        // Tab 2: Handover Report
         const handoverPersonNameInput = document.getElementById('handoverPersonName');
         const isSubstituteInput = document.getElementById('isSubstitute');
         const generateHandoverBtn = document.getElementById('generateHandoverBtn');
         const copyHandoverBtn = document.getElementById('copyHandoverBtn');
         const handoverResultDiv = document.getElementById('handoverResult');
         
-        // Tab controls
         const tabButtons = document.querySelectorAll('.tab-button');
         const tabPanes = document.querySelectorAll('.tab-pane');
-
-        // --- Helper Functions ---
+        
         const weekMap = ['日', '一', '二', '三', '四', '五', '六'];
         const formatShiftDate = (date) => `${date.getMonth() + 1}/${date.getDate()}（${weekMap[date.getDay()]}）`;
 
-        // --- Tab 1 Functions ---
         function initializeDateTime() {
             const now = new Date();
             rocYearInput.value = now.getFullYear() - 1911;
@@ -229,56 +217,48 @@
         }
 
         function generateEmergencyReport() {
+            // 修改 #2: 在產生訊息後，儲存值
+            localStorage.setItem(EVENT_NAME_KEY, eventNameInput.value);
+            
             const reportText = `${eventNameInput.value}緊急應變小組${rocYearInput.value}年${monthInput.value}月${dayInput.value}日${hourInput.value}時${minuteInput.value}分回報鐵道局值勤人員（${personNameInput.value}）本分局工區一切正常`;
             resultDiv.textContent = reportText;
         }
 
-        // --- Tab 2 Functions ---
         function generateHandoverReport() {
+            // 修改 #2: 在產生訊息後，儲存值
+            localStorage.setItem(HANDOVER_PERSON_KEY, handoverPersonNameInput.value);
+
             const now = new Date();
             const currentHour = now.getHours();
-            
-            let startTime, endTime;
-            let startTimeStr, endTimeStr;
+            let startTime, endTime, startTimeStr, endTimeStr;
 
-            // 如果現在是 08:00 ~ 19:59，則準備回報「今晚到明早」的夜班
             if (currentHour >= 8 && currentHour < 20) {
                 startTime = new Date(now);
-                startTime.setHours(20, 0, 0, 0); // 今晚 20:00
-                
+                startTime.setHours(20, 0, 0, 0);
                 endTime = new Date(now);
-                endTime.setDate(endTime.getDate() + 1); // 隔天
-                endTime.setHours(8, 0, 0, 0); // 明早 08:00
-
+                endTime.setDate(endTime.getDate() + 1);
+                endTime.setHours(8, 0, 0, 0);
                 startTimeStr = "20:00";
                 endTimeStr = "08:00";
-            } 
-            // 如果現在是 20:00 ~ 隔天 07:59，則準備回報「今天早上」的日班
-            else {
+            } else {
                 startTime = new Date(now);
-                startTime.setHours(8, 0, 0, 0); // 今天早上 08:00
-
+                startTime.setHours(8, 0, 0, 0);
                 endTime = new Date(now);
-                endTime.setHours(20, 0, 0, 0); // 今天晚上 20:00
-
-                // 如果現在是 00:00-07:59, startTime的日期應該是前一天
+                endTime.setHours(20, 0, 0, 0);
                 if (currentHour < 8) {
                     startTime.setDate(startTime.getDate() - 1);
                     endTime.setDate(endTime.getDate() - 1);
                 }
-                
                 startTimeStr = "08:00";
                 endTimeStr = "20:00";
             }
 
             const personName = handoverPersonNameInput.value;
             const role = isSubstituteInput.checked ? '代理' : '';
-            
             const reportText = `${formatShiftDate(startTime)} ${startTimeStr}-${formatShiftDate(endTime)} ${endTimeStr}由${personName}${role}值班。`;
             handoverResultDiv.textContent = reportText;
         }
-
-        // --- Generic Copy Function ---
+        
         function copyToClipboard(elementId, buttonElement) {
             const textToCopy = document.getElementById(elementId).textContent;
             if (!textToCopy) {
@@ -295,29 +275,21 @@
         }
         
         // --- Event Listeners ---
-        // Tab 1
         generateBtn.addEventListener('click', generateEmergencyReport);
         copyBtn.addEventListener('click', () => copyToClipboard('result', copyBtn));
 
-        // Tab 2
         generateHandoverBtn.addEventListener('click', generateHandoverReport);
         copyHandoverBtn.addEventListener('click', () => copyToClipboard('handoverResult', copyHandoverBtn));
-        // 當輸入框內容改變時也自動更新
         handoverPersonNameInput.addEventListener('input', generateHandoverReport);
         isSubstituteInput.addEventListener('change', generateHandoverReport);
 
-        // Tab switching
         tabButtons.forEach(button => {
             button.addEventListener('click', () => {
                 const targetTab = button.getAttribute('data-tab');
-
                 tabButtons.forEach(btn => btn.classList.remove('active'));
                 tabPanes.forEach(pane => pane.classList.remove('active'));
-
                 button.classList.add('active');
                 document.getElementById(targetTab).classList.add('active');
-
-                // 切換時立即產生預設內容
                 if (targetTab === 'emergencyReport') {
                     generateEmergencyReport();
                 } else {
@@ -328,9 +300,20 @@
 
         // --- Initial Execution ---
         document.addEventListener('DOMContentLoaded', () => {
+            // 修改 #2: 頁面載入時，從 localStorage 讀取已儲存的值
+            const savedEventName = localStorage.getItem(EVENT_NAME_KEY);
+            if (savedEventName) {
+                eventNameInput.value = savedEventName;
+            }
+
+            const savedHandoverPerson = localStorage.getItem(HANDOVER_PERSON_KEY);
+            if (savedHandoverPerson) {
+                handoverPersonNameInput.value = savedHandoverPerson;
+            }
+
             initializeDateTime();
             generateEmergencyReport();
-            generateHandoverReport(); // 預先產生接班訊息
+            generateHandoverReport();
         });
     </script>
 
