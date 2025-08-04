@@ -6,91 +6,43 @@
     <title>勤務回報產生器</title>
     <style>
         body {
-            font-family: 'Microsoft JhengHei', '微軟正黑體', sans-serif;
-            background-color: #f0f2f5;
-            display: flex;
-            justify-content: center;
-            align-items: flex-start;
-            min-height: 100vh;
-            margin: 0;
-            padding: 20px;
-            box-sizing: border-box;
+            font-family: 'Microsoft JhengHei', '微軟正黑體', sans-serif; background-color: #f0f2f5; display: flex;
+            justify-content: center; align-items: flex-start; min-height: 100vh; margin: 0; padding: 20px; box-sizing: border-box;
         }
         .container {
-            background-color: #ffffff;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-            width: 100%;
-            max-width: 600px;
+            background-color: #ffffff; padding: 20px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            width: 100%; max-width: 600px;
         }
-        h1 {
-            text-align: center;
-            color: #1c2a5c;
-            margin-bottom: 20px;
-            font-size: 24px;
-        }
-        .tab-nav {
-            display: flex;
-            border-bottom: 2px solid #dee2e6;
-            margin-bottom: 20px;
-        }
+        h1 { text-align: center; color: #1c2a5c; margin-bottom: 20px; font-size: 24px; }
+        .tab-nav { display: flex; border-bottom: 2px solid #dee2e6; margin-bottom: 20px; }
         .tab-button {
-            padding: 10px 15px;
-            cursor: pointer;
-            border: none;
-            background-color: transparent;
-            font-size: 16px;
-            font-weight: 600;
-            color: #495057;
-            position: relative;
-            top: 2px;
+            padding: 10px 15px; cursor: pointer; border: none; background-color: transparent;
+            font-size: 16px; font-weight: 600; color: #495057; position: relative; top: 2px;
         }
-        .tab-button.active {
-            color: #007bff;
-            border: 2px solid #dee2e6;
-            border-bottom-color: #fff;
-            border-radius: 5px 5px 0 0;
-        }
+        .tab-button.active { color: #007bff; border: 2px solid #dee2e6; border-bottom-color: #fff; border-radius: 5px 5px 0 0; }
         .tab-pane { display: none; }
         .tab-pane.active { display: block; }
-        .form-group { margin-bottom: 20px; }
-        label {
-            display: block;
-            font-weight: 600;
-            margin-bottom: 8px;
-            color: #333;
+        .form-group { margin-bottom: 20px; position: relative; } /* Add position: relative for searchable select */
+        label { display: block; font-weight: 600; margin-bottom: 8px; color: #333; }
+        input[type="text"], input[type="number"] {
+            width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px;
+            box-sizing: border-box; font-size: 16px; background-color: #fff;
         }
-        input[type="text"], input[type="number"], select {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            box-sizing: border-box;
-            font-size: 16px;
-            background-color: #fff;
-        }
-        .checkbox-group {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            margin-top: 10px;
-        }
+        .checkbox-group { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
         .checkbox-group label { margin-bottom: 0; }
         .hidden { display: none; }
         
-        .time-group {
-            display: flex;
-            gap: 10px;
-            align-items: center;
-            flex-wrap: wrap; 
+        /* --- Searchable Select Styles --- */
+        .options-container {
+            display: none; position: absolute; background-color: white; border: 1px solid #ccc;
+            border-radius: 5px; max-height: 200px; overflow-y: auto; width: 100%; z-index: 1000;
         }
-        .time-group .input-wrapper {
-            flex: 1; min-width: 60px; position: relative; margin-bottom: 5px;
-        }
-        .time-group .unit {
-            position: absolute; right: 10px; top: 50%; transform: translateY(-50%); color: #888; pointer-events: none;
-        }
+        .option-item { padding: 10px; cursor: pointer; }
+        .option-item:hover { background-color: #f0f0f0; }
+
+        .time-group { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+        .time-group .input-wrapper { flex: 1; min-width: 60px; position: relative; margin-bottom: 5px; }
+        .time-group .unit { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); color: #888; pointer-events: none; }
         .time-group input { padding-right: 30px; }
         
         button {
@@ -118,6 +70,7 @@
         </div>
 
         <div id="emergencyReport" class="tab-pane active">
+            <!-- ... 緊急回報內容維持不變 ... -->
             <div class="form-group">
                 <label for="eventName">事件名稱</label>
                 <input type="text" id="eventName" value="0728豪雨">
@@ -143,8 +96,9 @@
 
         <div id="handoverReport" class="tab-pane">
             <div class="form-group">
-                <label for="currentOfficerSelect">接班人</label>
-                <select id="currentOfficerSelect"></select>
+                <label for="currentOfficerInput">接班人</label>
+                <input type="text" id="currentOfficerInput" class="searchable-input" placeholder="輸入關鍵字搜尋...">
+                <div class="options-container" id="currentOfficerOptions"></div>
                 <div class="checkbox-group">
                     <input type="checkbox" id="isSubstitute" style="width: auto;">
                     <label for="isSubstitute">此為代理值班</label>
@@ -157,15 +111,22 @@
                     <label for="supervisorPresent">值勤主管有進駐</label>
                 </div>
                 <div id="supervisorGroup" class="form-group hidden" style="margin-top:10px; margin-bottom:0;">
-                    <label for="supervisorSelect">值勤主管</label>
-                    <select id="supervisorSelect"></select>
+                    <label for="supervisorInput">值勤主管</label>
+                    <input type="text" id="supervisorInput" class="searchable-input" placeholder="輸入關鍵字搜尋...">
+                    <div class="options-container" id="supervisorOptions"></div>
                 </div>
             </div>
 
             <div class="form-group">
-                <label for="nextOfficer1Select">後二班輪值人員</label>
-                <select id="nextOfficer1Select" style="margin-bottom: 5px;"></select>
-                <select id="nextOfficer2Select"></select>
+                <label>後二班輪值人員</label>
+                <div class="form-group" style="margin-bottom: 5px;">
+                    <input type="text" id="nextOfficer1Input" class="searchable-input" placeholder="第一位，輸入關鍵字搜尋...">
+                    <div class="options-container" id="nextOfficer1Options"></div>
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                    <input type="text" id="nextOfficer2Input" class="searchable-input" placeholder="第二位，輸入關鍵字搜尋...">
+                    <div class="options-container" id="nextOfficer2Options"></div>
+                </div>
             </div>
 
             <div id="handoverResult"></div>
@@ -179,53 +140,53 @@
         const shiftOfficers = ["吳文鴻", "張焜歆", "楊麗雯", "洪維達", "郭建志", "陳鑫源", "蕭志憲", "楊宗達", "林俊宏", "劉育銘", "戴振達", "林文濤", "陳金保", "林太祈", "柳旻佐", "林志明", "吳宏仁", "林明達", "張愷文", "林昶宏", "胡元昌"];
 
         // --- localStorage Keys ---
-        const EVENT_NAME_KEY = 'savedEventName';
-        const EMERGENCY_PERSON_KEY = 'savedEmergencyPersonName';
-        const HANDOVER_CURRENT_OFFICER_KEY = 'savedCurrentOfficer';
-        const HANDOVER_SUBSTITUTE_KEY = 'savedIsSubstitute';
-        const HANDOVER_SUPERVISOR_PRESENT_KEY = 'savedSupervisorPresent';
-        const HANDOVER_SUPERVISOR_KEY = 'savedSupervisor';
-        const HANDOVER_NEXT1_KEY = 'savedNextOfficer1';
-        const HANDOVER_NEXT2_KEY = 'savedNextOfficer2';
+        const EVENT_NAME_KEY = 'savedEventName', EMERGENCY_PERSON_KEY = 'savedEmergencyPersonName',
+              HANDOVER_CURRENT_OFFICER_KEY = 'savedCurrentOfficer', HANDOVER_SUBSTITUTE_KEY = 'savedIsSubstitute',
+              HANDOVER_SUPERVISOR_PRESENT_KEY = 'savedSupervisorPresent', HANDOVER_SUPERVISOR_KEY = 'savedSupervisor',
+              HANDOVER_NEXT1_KEY = 'savedNextOfficer1', HANDOVER_NEXT2_KEY = 'savedNextOfficer2';
 
         // --- DOM Element Selection ---
-        const eventNameInput = document.getElementById('eventName'),
-              personNameInput = document.getElementById('personName'),
-              resultDiv = document.getElementById('result'),
-              generateBtn = document.getElementById('generateBtn'),
-              copyBtn = document.getElementById('copyBtn'),
-              rocYearInput = document.getElementById('rocYear'),
-              monthInput = document.getElementById('month'),
-              dayInput = document.getElementById('day'),
-              hourInput = document.getElementById('hour'),
-              minuteInput = document.getElementById('minute');
+        const eventNameInput = document.getElementById('eventName'), personNameInput = document.getElementById('personName'), resultDiv = document.getElementById('result'),
+              generateBtn = document.getElementById('generateBtn'), copyBtn = document.getElementById('copyBtn'),
+              rocYearInput = document.getElementById('rocYear'), monthInput = document.getElementById('month'),
+              dayInput = document.getElementById('day'), hourInput = document.getElementById('hour'), minuteInput = document.getElementById('minute');
 
-        const currentOfficerSelect = document.getElementById('currentOfficerSelect'),
-              isSubstituteInput = document.getElementById('isSubstitute'),
-              supervisorPresent = document.getElementById('supervisorPresent'),
-              supervisorGroup = document.getElementById('supervisorGroup'),
-              supervisorSelect = document.getElementById('supervisorSelect'),
-              nextOfficer1Select = document.getElementById('nextOfficer1Select'),
-              nextOfficer2Select = document.getElementById('nextOfficer2Select'),
-              handoverResultDiv = document.getElementById('handoverResult'),
-              copyHandoverBtn = document.getElementById('copyHandoverBtn');
+        // Handover Report Elements
+        const handoverResultDiv = document.getElementById('handoverResult'), copyHandoverBtn = document.getElementById('copyHandoverBtn'),
+              isSubstituteInput = document.getElementById('isSubstitute'), supervisorPresent = document.getElementById('supervisorPresent'),
+              supervisorGroup = document.getElementById('supervisorGroup');
         
-        const tabButtons = document.querySelectorAll('.tab-button'),
-              tabPanes = document.querySelectorAll('.tab-pane');
-        
+        // --- Searchable Input Elements ---
+        const searchableInputs = {
+            currentOfficer: { input: document.getElementById('currentOfficerInput'), options: document.getElementById('currentOfficerOptions'), data: shiftOfficers },
+            supervisor: { input: document.getElementById('supervisorInput'), options: document.getElementById('supervisorOptions'), data: supervisors },
+            nextOfficer1: { input: document.getElementById('nextOfficer1Input'), options: document.getElementById('nextOfficer1Options'), data: shiftOfficers },
+            nextOfficer2: { input: document.getElementById('nextOfficer2Input'), options: document.getElementById('nextOfficer2Options'), data: shiftOfficers }
+        };
+
+        const tabButtons = document.querySelectorAll('.tab-button'), tabPanes = document.querySelectorAll('.tab-pane');
         const weekMap = ['日', '一', '二', '三', '四', '五', '六'];
 
-        // --- Helper Functions ---
-        const formatShiftDate = (date) => `${date.getMonth() + 1}/${date.getDate()}（${weekMap[date.getDay()]}）`;
-        
-        function populateSelect(selectElement, optionsArray) {
-            selectElement.innerHTML = '';
-            optionsArray.forEach(option => {
-                const opt = document.createElement('option');
-                opt.value = option;
-                opt.textContent = option;
-                selectElement.appendChild(opt);
+        // --- Searchable Select Logic ---
+        function initSearchableSelect(config) {
+            config.input.addEventListener('keyup', () => {
+                const searchTerm = config.input.value.toLowerCase();
+                const filteredData = config.data.filter(item => item.toLowerCase().includes(searchTerm));
+                config.options.innerHTML = '';
+                filteredData.forEach(item => {
+                    const optionEl = document.createElement('div');
+                    optionEl.classList.add('option-item');
+                    optionEl.textContent = item;
+                    optionEl.addEventListener('click', () => {
+                        config.input.value = item;
+                        config.options.style.display = 'none';
+                        generateHandoverReport(); // Update report on selection
+                    });
+                    config.options.appendChild(optionEl);
+                });
+                config.options.style.display = filteredData.length > 0 ? 'block' : 'none';
             });
+            config.input.addEventListener('focus', () => config.input.dispatchEvent(new Event('keyup')));
         }
 
         // --- Report Generation Functions ---
@@ -237,95 +198,89 @@
 
         function generateHandoverReport() {
             const now = new Date();
-            const currentHour = now.getHours();
-            let startTime, endTime, startTimeStr, endTimeStr;
+            let startTime = new Date(), endTime = new Date();
+            let startTimeStr, endTimeStr;
             
-            // Revised Date Logic: Always calculate the *next* shift
-            if (currentHour >= 20) { // After 8 PM, next shift is tomorrow morning
-                startTime = new Date();
-                startTime.setDate(now.getDate() + 1);
-                startTime.setHours(8, 0, 0, 0);
-                endTime = new Date(startTime);
-                endTime.setHours(20, 0, 0, 0);
+            if (now.getHours() >= 20) {
+                startTime.setDate(now.getDate() + 1); startTime.setHours(8, 0, 0, 0);
+                endTime.setDate(now.getDate() + 1); endTime.setHours(20, 0, 0, 0);
                 startTimeStr = "08:00"; endTimeStr = "20:00";
-            } else if (currentHour >= 8) { // Between 8 AM and 8 PM, next shift is tonight
-                startTime = new Date();
+            } else if (now.getHours() >= 8) {
                 startTime.setHours(20, 0, 0, 0);
-                endTime = new Date();
-                endTime.setDate(now.getDate() + 1);
-                endTime.setHours(8, 0, 0, 0);
+                endTime.setDate(now.getDate() + 1); endTime.setHours(8, 0, 0, 0);
                 startTimeStr = "20:00"; endTimeStr = "08:00";
-            } else { // Before 8 AM, next shift is this morning
-                startTime = new Date();
+            } else {
                 startTime.setHours(8, 0, 0, 0);
-                endTime = new Date();
                 endTime.setHours(20, 0, 0, 0);
                 startTimeStr = "08:00"; endTimeStr = "20:00";
             }
             
+            const formatShiftDate = (date) => `${date.getMonth() + 1}/${date.getDate()}（${weekMap[date.getDay()]}）`;
             const dateLine = `${formatShiftDate(startTime)} ${startTimeStr}-${formatShiftDate(endTime)} ${endTimeStr}`;
-            const officerLine = `接班人：${currentOfficerSelect.value}${isSubstituteInput.checked ? '(代值)' : ''}。`;
+            const officerLine = `接班人：${searchableInputs.currentOfficer.input.value}${isSubstituteInput.checked ? '(代值)' : ''}。`;
             let supervisorLine = "";
             if (supervisorPresent.checked) {
-                supervisorLine = `\n執勤主管：${supervisorSelect.value}`;
+                supervisorLine = `\n執勤主管：${searchableInputs.supervisor.input.value}`;
             }
-            const nextOfficersLine = `\n後二班依序由${nextOfficer1Select.value}、${nextOfficer2Select.value}輪值。`;
+            const nextOfficersLine = `\n後二班依序由${searchableInputs.nextOfficer1.input.value}、${searchableInputs.nextOfficer2.input.value}輪值。`;
 
             handoverResultDiv.textContent = dateLine + "\n" + officerLine + supervisorLine + nextOfficersLine;
             
             // Save state to localStorage
-            localStorage.setItem(HANDOVER_CURRENT_OFFICER_KEY, currentOfficerSelect.selectedIndex);
+            localStorage.setItem(HANDOVER_CURRENT_OFFICER_KEY, searchableInputs.currentOfficer.input.value);
             localStorage.setItem(HANDOVER_SUBSTITUTE_KEY, isSubstituteInput.checked);
             localStorage.setItem(HANDOVER_SUPERVISOR_PRESENT_KEY, supervisorPresent.checked);
-            localStorage.setItem(HANDOVER_SUPERVISOR_KEY, supervisorSelect.selectedIndex);
-            localStorage.setItem(HANDOVER_NEXT1_KEY, nextOfficer1Select.selectedIndex);
-            localStorage.setItem(HANDOVER_NEXT2_KEY, nextOfficer2Select.selectedIndex);
+            localStorage.setItem(HANDOVER_SUPERVISOR_KEY, searchableInputs.supervisor.input.value);
+            localStorage.setItem(HANDOVER_NEXT1_KEY, searchableInputs.nextOfficer1.input.value);
+            localStorage.setItem(HANDOVER_NEXT2_KEY, searchableInputs.nextOfficer2.input.value);
         }
         
         // --- Initialization and Event Listeners ---
         document.addEventListener('DOMContentLoaded', () => {
-            // Populate all dropdowns
-            populateSelect(supervisorSelect, supervisors);
-            [currentOfficerSelect, nextOfficer1Select, nextOfficer2Select].forEach(sel => populateSelect(sel, shiftOfficers));
+            // Initialize all searchable selects
+            for (const key in searchableInputs) {
+                initSearchableSelect(searchableInputs[key]);
+            }
 
             // Load saved values from localStorage
             eventNameInput.value = localStorage.getItem(EVENT_NAME_KEY) || "0728豪雨";
             personNameInput.value = localStorage.getItem(EMERGENCY_PERSON_KEY) || "鄒承諺";
-            currentOfficerSelect.selectedIndex = localStorage.getItem(HANDOVER_CURRENT_OFFICER_KEY) || 0;
+            searchableInputs.currentOfficer.input.value = localStorage.getItem(HANDOVER_CURRENT_OFFICER_KEY) || shiftOfficers[0];
             isSubstituteInput.checked = (localStorage.getItem(HANDOVER_SUBSTITUTE_KEY) === 'true');
             supervisorPresent.checked = (localStorage.getItem(HANDOVER_SUPERVISOR_PRESENT_KEY) === 'true');
-            supervisorSelect.selectedIndex = localStorage.getItem(HANDOVER_SUPERVISOR_KEY) || 0;
-            nextOfficer1Select.selectedIndex = localStorage.getItem(HANDOVER_NEXT1_KEY) || 0;
-            nextOfficer2Select.selectedIndex = localStorage.getItem(HANDOVER_NEXT2_KEY) || 0;
+            searchableInputs.supervisor.input.value = localStorage.getItem(HANDOVER_SUPERVISOR_KEY) || supervisors[0];
+            searchableInputs.nextOfficer1.input.value = localStorage.getItem(HANDOVER_NEXT1_KEY) || shiftOfficers[1];
+            searchableInputs.nextOfficer2.input.value = localStorage.getItem(HANDOVER_NEXT2_KEY) || shiftOfficers[2];
 
-            // Initialize UI state
             if (supervisorPresent.checked) { supervisorGroup.classList.remove('hidden'); }
             
             const now = new Date();
-            rocYearInput.value = now.getFullYear() - 1911;
-            monthInput.value = now.getMonth() + 1;
-            dayInput.value = now.getDate();
-            hourInput.value = now.getHours();
-            minuteInput.value = now.getMinutes();
+            rocYearInput.value = now.getFullYear() - 1911; monthInput.value = now.getMonth() + 1;
+            dayInput.value = now.getDate(); hourInput.value = now.getHours(); minuteInput.value = now.getMinutes();
 
-            // Generate initial reports
             generateEmergencyReport();
             generateHandoverReport();
         });
         
-        // Event Listeners for real-time updates
+        // Close dropdowns if clicked outside
+        document.addEventListener('click', (e) => {
+            for (const key in searchableInputs) {
+                if (!searchableInputs[key].input.contains(e.target)) {
+                    searchableInputs[key].options.style.display = 'none';
+                }
+            }
+        });
+
+        // Other Event Listeners
         generateBtn.addEventListener('click', generateEmergencyReport);
-        copyBtn.addEventListener('click', () => copyToClipboard('result', copyBtn));
-        copyHandoverBtn.addEventListener('click', () => copyToClipboard('handoverResult', copyHandoverBtn));
+        copyBtn.addEventListener('click', () => copyToClipboard('result'));
+        copyHandoverBtn.addEventListener('click', () => copyToClipboard('handoverResult'));
         
         supervisorPresent.addEventListener('change', () => {
             supervisorGroup.classList.toggle('hidden', !supervisorPresent.checked);
             generateHandoverReport();
         });
-        
-        [currentOfficerSelect, isSubstituteInput, supervisorSelect, nextOfficer1Select, nextOfficer2Select].forEach(el => {
-            el.addEventListener('change', generateHandoverReport);
-        });
+        isSubstituteInput.addEventListener('change', generateHandoverReport);
 
         tabButtons.forEach(button => {
             button.addEventListener('click', () => {
@@ -337,13 +292,14 @@
             });
         });
         
-        function copyToClipboard(elementId, buttonElement) {
+        function copyToClipboard(elementId) {
             const textToCopy = document.getElementById(elementId).textContent;
+            const buttonElement = document.getElementById(elementId === 'result' ? 'copyBtn' : 'copyHandoverBtn');
             if (!textToCopy) { alert('沒有內容可以複製！'); return; }
             navigator.clipboard.writeText(textToCopy).then(() => {
                 const originalText = buttonElement.textContent;
                 buttonElement.textContent = '已複製！';
-                setTimeout(() => { buttonElement.textContent = originalText; }, 2000);
+                setTimeout(() => { buttonElement.textContent = "複製內容"; }, 2000);
             });
         }
     </script>
