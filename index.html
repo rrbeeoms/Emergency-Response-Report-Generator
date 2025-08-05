@@ -31,6 +31,7 @@
         .checkbox-group, .radio-group { display: flex; align-items: center; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
         .checkbox-group label, .radio-group label { margin-bottom: 0; font-weight: normal; }
         .radio-group { gap: 15px; } 
+        .hidden { display: none; }
         
         .options-container {
             display: none; position: absolute; background-color: white; border: 1px solid #ccc;
@@ -69,7 +70,7 @@
         </div>
 
         <div id="emergencyReport" class="tab-pane active">
-            <!-- Emergency Report HTML (dynamically injected) -->
+            <!-- 緊急回報 HTML 內容 -->
         </div>
 
         <div id="handoverReport" class="tab-pane">
@@ -80,8 +81,7 @@
                     <label><input type="radio" name="shiftMode" value="previous"> 回報當前/上個班別</label>
                     <label><input type="radio" name="shiftMode" value="custom"> 自訂時間</label>
                 </div>
-                <!-- Note: The 'hidden' class is now removed. JS will control display directly. -->
-                <div id="customTimeGroup" class="custom-time-inputs" style="display: none;">
+                <div id="customTimeGroup" class="custom-time-inputs hidden">
                     <input type="text" id="customStartTime" placeholder="開始 HH:MM">
                     <input type="text" id="customEndTime" placeholder="結束 HH:MM">
                 </div>
@@ -102,7 +102,7 @@
                     <input type="checkbox" id="supervisorPresent" style="width: auto;">
                     <label for="supervisorPresent">值勤主管有進駐</label>
                 </div>
-                <div id="supervisorGroup" style="display: none; margin-top:10px; margin-bottom:0;">
+                <div id="supervisorGroup" class="form-group hidden" style="margin-top:10px; margin-bottom:0;">
                     <label for="supervisorInput">值勤主管</label>
                     <input type="text" id="supervisorInput" class="searchable-input" placeholder="點此選取或輸入關鍵字搜尋...">
                     <div class="options-container" id="supervisorOptions"></div>
@@ -127,8 +127,11 @@
     </div>
 
     <script>
+        // --- Lists of Personnel ---
         const supervisors = ["李科長大川", "陳主任巧穎", "林科長秀香", "李科長育欣", "張主任廣量", "陳主任建霖", "藍科長苑綾", "黃科長景明", "魏主任慶政"];
         const shiftOfficers = ["吳文鴻", "張焜歆", "楊麗雯", "洪維達", "郭建志", "陳鑫源", "蕭志憲", "楊宗達", "林俊宏", "劉育銘", "戴振達", "林文濤", "陳金保", "林太祈", "柳旻佐", "林志明", "吳宏仁", "張愷文", "林昶宏", "胡元昌"];
+
+        // --- localStorage Keys ---
         const EVENT_NAME_KEY = 'savedEventName', EMERGENCY_PERSON_KEY = 'savedEmergencyPersonName',
               HANDOVER_CURRENT_OFFICER_KEY = 'savedCurrentOfficer', HANDOVER_SUBSTITUTE_KEY = 'savedIsSubstitute',
               HANDOVER_SUPERVISOR_PRESENT_KEY = 'savedSupervisorPresent', HANDOVER_SUPERVISOR_KEY = 'savedSupervisor',
@@ -152,6 +155,7 @@
                 rocYearInput: document.getElementById('rocYear'), monthInput: document.getElementById('month'), dayInput: document.getElementById('day'),
                 hourInput: document.getElementById('hour'), minuteInput: document.getElementById('minute')
             };
+
             const handoverElements = {
                 resultDiv: document.getElementById('handoverResult'), copyBtn: document.getElementById('copyHandoverBtn'),
                 isSubstituteInput: document.getElementById('isSubstitute'), supervisorPresent: document.getElementById('supervisorPresent'),
@@ -159,31 +163,38 @@
                 customTimeGroup: document.getElementById('customTimeGroup'), customStartTimeInput: document.getElementById('customStartTime'),
                 customEndTimeInput: document.getElementById('customEndTime')
             };
+
             const searchableInputs = {
                 currentOfficer: { input: document.getElementById('currentOfficerInput'), options: document.getElementById('currentOfficerOptions'), data: shiftOfficers },
                 supervisor: { input: document.getElementById('supervisorInput'), options: document.getElementById('supervisorOptions'), data: supervisors },
                 nextOfficer1: { input: document.getElementById('nextOfficer1Input'), options: document.getElementById('nextOfficer1Options'), data: shiftOfficers },
                 nextOfficer2: { input: document.getElementById('nextOfficer2Input'), options: document.getElementById('nextOfficer2Options'), data: shiftOfficers }
             };
+
             const tabButtons = document.querySelectorAll('.tab-button'), tabPanes = document.querySelectorAll('.tab-pane');
             const weekMap = ['日', '一', '二', '三', '四', '五', '六'];
 
             // --- THIS IS THE FIX ---
-            function toggleUIVisibility() {
+            function toggleCustomTimeVisibility() {
                 const selectedMode = document.querySelector('input[name="shiftMode"]:checked').value;
-                handoverElements.customTimeGroup.style.display = selectedMode === 'custom' ? 'flex' : 'none';
-                handoverElements.supervisorGroup.style.display = handoverElements.supervisorPresent.checked ? 'block' : 'none';
+                if (selectedMode === 'custom') {
+                    handoverElements.customTimeGroup.classList.remove('hidden');
+                } else {
+                    handoverElements.customTimeGroup.classList.add('hidden');
+                }
             }
             
             function updateNextOfficers(selectedOfficerName) {
                 const currentIndex = shiftOfficers.indexOf(selectedOfficerName);
                 if (currentIndex === -1) return;
-                searchableInputs.nextOfficer1.input.value = shiftOfficers[(currentIndex + 1) % shiftOfficers.length];
-                searchableInputs.nextOfficer2.input.value = shiftOfficers[(currentIndex + 2) % shiftOfficers.length];
+                const nextIndex1 = (currentIndex + 1) % shiftOfficers.length;
+                const nextIndex2 = (currentIndex + 2) % shiftOfficers.length;
+                searchableInputs.nextOfficer1.input.value = shiftOfficers[nextIndex1];
+                searchableInputs.nextOfficer2.input.value = shiftOfficers[nextIndex2];
             }
 
             function initSearchableSelect(config) {
-                config.input.addEventListener('keyup', (e) => {
+                config.input.addEventListener('keyup', () => {
                     const searchTerm = config.input.value.toLowerCase();
                     const filteredData = config.data.filter(item => item.toLowerCase().includes(searchTerm));
                     config.options.innerHTML = '';
@@ -201,45 +212,49 @@
                     });
                     config.options.style.display = filteredData.length > 0 ? 'block' : 'none';
                 });
-                config.input.addEventListener('focus', (e) => e.target.dispatchEvent(new Event('keyup', { 'bubbles': true })));
+                config.input.addEventListener('focus', () => config.input.dispatchEvent(new Event('keyup')));
             }
             
             function generateHandoverReport() {
                 const mode = document.querySelector('input[name="shiftMode"]:checked').value;
                 const now = new Date();
+                const currentHour = now.getHours();
                 let startTime = new Date(now), endTime = new Date(now);
+
                 if (mode === 'next') {
-                    if (now.getHours() >= 20) {
-                        startTime.setDate(now.getDate() + 1); startTime.setHours(8,0,0,0);
-                        endTime.setDate(now.getDate() + 1); endTime.setHours(20,0,0,0);
-                    } else if (now.getHours() >= 8) {
-                        startTime.setHours(20,0,0,0);
-                        endTime.setDate(now.getDate() + 1); endTime.setHours(8,0,0,0);
+                    if (currentHour >= 20) {
+                        startTime.setDate(now.getDate() + 1); startTime.setHours(8); endTime.setDate(now.getDate() + 1); endTime.setHours(20);
+                    } else if (currentHour >= 8) {
+                        startTime.setHours(20); endTime.setDate(now.getDate() + 1); endTime.setHours(8);
                     } else {
-                        startTime.setHours(8,0,0,0);
-                        endTime.setHours(20,0,0,0);
+                        startTime.setHours(8); endTime.setHours(20);
                     }
                 } else { 
-                    if (now.getHours() >= 8 && now.getHours() < 20) {
-                        startTime.setHours(8,0,0,0); endTime.setHours(20,0,0,0);
+                    if (currentHour >= 8 && currentHour < 20) {
+                        startTime.setHours(8); endTime.setHours(20);
                     } else {
-                        if (now.getHours() >= 20) {
-                            startTime.setHours(20,0,0,0); endTime.setDate(now.getDate() + 1); endTime.setHours(8,0,0,0);
+                        if (currentHour >= 20) {
+                            startTime.setHours(20); endTime.setDate(now.getDate() + 1); endTime.setHours(8);
                         } else {
-                            startTime.setDate(now.getDate() - 1); startTime.setHours(20,0,0,0); endTime.setHours(8,0,0,0);
+                            startTime.setDate(now.getDate() - 1); startTime.setHours(20); endTime.setHours(8);
                         }
                     }
                 }
                 
-                let startTimeStr = (mode === 'custom') ? handoverElements.customStartTimeInput.value : (startTime.getHours() === 8 ? "08:00" : "20:00");
-                let endTimeStr = (mode === 'custom') ? handoverElements.customEndTimeInput.value : (endTime.getHours() === 8 ? "08:00" : "20:00");
-                if (!startTimeStr) startTimeStr = "00:00";
-                if (!endTimeStr) endTimeStr = "00:00";
+                let startTimeStr, endTimeStr;
+                if (mode === 'custom') {
+                    startTimeStr = handoverElements.customStartTimeInput.value || "00:00";
+                    endTimeStr = handoverElements.customEndTimeInput.value || "00:00";
+                } else {
+                    startTimeStr = startTime.getHours() === 8 ? "08:00" : "20:00";
+                    endTimeStr = endTime.getHours() === 8 ? "08:00" : "20:00";
+                }
 
                 const formatShiftDate = (date) => `${date.getMonth() + 1}/${date.getDate()}（${weekMap[date.getDay()]}）`;
                 const dateLine = `${formatShiftDate(startTime)} ${startTimeStr}-${formatShiftDate(endTime)} ${endTimeStr}`;
                 const officerLine = `接班人：${searchableInputs.currentOfficer.input.value}${handoverElements.isSubstituteInput.checked ? '(代值)' : ''}。`;
-                let supervisorLine = handoverElements.supervisorPresent.checked ? `\n執勤主管：${searchableInputs.supervisor.input.value}` : "";
+                let supervisorLine = "";
+                if (handoverElements.supervisorPresent.checked) { supervisorLine = `\n執勤主管：${searchableInputs.supervisor.input.value}`; }
                 const nextOfficersLine = `\n後二班依序由${searchableInputs.nextOfficer1.input.value}、${searchableInputs.nextOfficer2.input.value}輪值。`;
                 handoverElements.resultDiv.textContent = dateLine + "\n" + officerLine + supervisorLine + nextOfficersLine;
                 
@@ -252,6 +267,7 @@
                 localStorage.setItem(HANDOVER_CUSTOM_END_KEY, handoverElements.customEndTimeInput.value);
             }
 
+            // --- Initialization ---
             for (const key in searchableInputs) { initSearchableSelect(searchableInputs[key]); }
 
             const loadSavedValue = (key, dataArray, defaultValue) => {
@@ -259,16 +275,19 @@
                 return (savedValue && dataArray.includes(savedValue)) ? savedValue : defaultValue;
             };
 
-            document.querySelector(`input[name="shiftMode"][value="${localStorage.getItem(HANDOVER_SHIFT_MODE_KEY) || 'next'}"]`).checked = true;
+            const savedMode = localStorage.getItem(HANDOVER_SHIFT_MODE_KEY) || 'next';
+            document.querySelector(`input[name="shiftMode"][value="${savedMode}"]`).checked = true;
+            toggleCustomTimeVisibility(); // <-- FIX: Call the function on load
             handoverElements.customStartTimeInput.value = localStorage.getItem(HANDOVER_CUSTOM_START_KEY) || "08:00";
             handoverElements.customEndTimeInput.value = localStorage.getItem(HANDOVER_CUSTOM_END_KEY) || "20:00";
-            
+
             const savedCurrentOfficer = loadSavedValue(HANDOVER_CURRENT_OFFICER_KEY, shiftOfficers, shiftOfficers[0]);
             searchableInputs.currentOfficer.input.value = savedCurrentOfficer;
             updateNextOfficers(savedCurrentOfficer);
             searchableInputs.supervisor.input.value = loadSavedValue(HANDOVER_SUPERVISOR_KEY, supervisors, supervisors[0]);
             handoverElements.isSubstituteInput.checked = (localStorage.getItem(HANDOVER_SUBSTITUTE_KEY) === 'true');
             handoverElements.supervisorPresent.checked = (localStorage.getItem(HANDOVER_SUPERVISOR_PRESENT_KEY) === 'true');
+            if (handoverElements.supervisorPresent.checked) { handoverElements.supervisorGroup.classList.remove('hidden'); }
             
             emergencyElements.eventNameInput.value = localStorage.getItem(EVENT_NAME_KEY) || "0728豪雨";
             emergencyElements.personNameInput.value = localStorage.getItem(EMERGENCY_PERSON_KEY) || "鄒承諺";
@@ -279,30 +298,39 @@
             emergencyElements.hourInput.value = now.getHours();
             emergencyElements.minuteInput.value = now.getMinutes();
             
-            toggleUIVisibility();
             generateHandoverReport();
 
-            emergencyElements.generateBtn.addEventListener('click', () => { /* ... */ });
+            // --- Event Listeners ---
+            emergencyElements.generateBtn.addEventListener('click', () => {
+                localStorage.setItem(EVENT_NAME_KEY, emergencyElements.eventNameInput.value);
+                localStorage.setItem(EMERGENCY_PERSON_KEY, emergencyElements.personNameInput.value);
+                const { eventNameInput, rocYearInput, monthInput, dayInput, hourInput, minuteInput, personNameInput, resultDiv } = emergencyElements;
+                resultDiv.textContent = `${eventNameInput.value}緊急應變小組${rocYearInput.value}年${monthInput.value}月${dayInput.value}日${hourInput.value}時${minuteInput.value}分回報鐵道局值勤人員（${personNameInput.value}）本分局工區一切正常`;
+            });
             emergencyElements.copyBtn.addEventListener('click', () => copyToClipboard('result'));
             handoverElements.copyBtn.addEventListener('click', () => copyToClipboard('handoverResult'));
             
             handoverElements.supervisorPresent.addEventListener('change', () => {
-                toggleUIVisibility();
+                handoverElements.supervisorGroup.classList.toggle('hidden', !handoverElements.supervisorPresent.checked);
                 generateHandoverReport();
             });
             handoverElements.isSubstituteInput.addEventListener('change', generateHandoverReport);
+            
+            // --- FIX: Correctly structured event listener ---
             handoverElements.shiftModeRadios.forEach(radio => radio.addEventListener('change', () => {
-                toggleUIVisibility();
+                toggleCustomTimeVisibility();
                 generateHandoverReport();
             }));
+
             handoverElements.customStartTimeInput.addEventListener('input', generateHandoverReport);
             handoverElements.customEndTimeInput.addEventListener('input', generateHandoverReport);
             
             Object.values(searchableInputs).forEach(config => {
-                if (config.input !== searchableInputs.currentOfficer.input) {
+                 if (config.input !== searchableInputs.currentOfficer.input) {
                     config.input.addEventListener('change', generateHandoverReport);
                 }
             });
+
             tabButtons.forEach(button => {
                 button.addEventListener('click', () => {
                     const targetTab = button.getAttribute('data-tab');
@@ -312,6 +340,7 @@
                     document.getElementById(targetTab).classList.add('active');
                 });
             });
+
             document.addEventListener('click', (e) => {
                 for (const key in searchableInputs) {
                     if (!searchableInputs[key].input.contains(e.target) && !searchableInputs[key].options.contains(e.target)) {
@@ -320,7 +349,19 @@
                 }
             });
         });
-        function copyToClipboard(elementId) { /* ... */ }
+
+        function copyToClipboard(elementId) {
+            const textToCopy = document.getElementById(elementId).textContent;
+            const buttonId = (elementId === 'result') ? 'copyBtn' : 'copyHandoverBtn';
+            const buttonElement = document.getElementById(buttonId);
+            if (!textToCopy) { alert('沒有內容可以複製！'); return; }
+            navigator.clipboard.writeText(textToCopy).then(() => {
+                const originalText = buttonElement.textContent;
+                buttonElement.textContent = '已複製！';
+                const newText = (buttonId === 'copyBtn') ? "複製內容" : "複製訊息";
+                setTimeout(() => { buttonElement.textContent = newText; }, 2000);
+            });
+        }
     </script>
 </body>
 </html>
