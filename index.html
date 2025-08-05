@@ -28,9 +28,9 @@
             width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px;
             box-sizing: border-box; font-size: 16px; background-color: #fff;
         }
-        .checkbox-group, .radio-group { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
+        .checkbox-group, .radio-group { display: flex; align-items: center; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
         .checkbox-group label, .radio-group label { margin-bottom: 0; font-weight: normal; }
-        .radio-group { gap: 15px; } /* Spacing for radio buttons */
+        .radio-group { gap: 15px; } 
         .hidden { display: none; }
         
         .options-container {
@@ -56,6 +56,7 @@
             margin-top: 25px; padding: 15px; background-color: #e9ecef; border: 1px solid #ced4da;
             border-radius: 5px; min-height: 100px; line-height: 1.8; color: #495057; white-space: pre-wrap; word-wrap: break-word;
         }
+        .custom-time-inputs { display: flex; gap: 10px; margin-top: 10px; }
     </style>
 </head>
 <body>
@@ -73,12 +74,17 @@
         </div>
 
         <div id="handoverReport" class="tab-pane">
-            <!-- MODIFICATION: Added Shift Mode Choice -->
             <div class="form-group">
                 <label>回報模式</label>
                 <div class="radio-group">
-                    <label><input type="radio" name="shiftMode" id="shiftModeNext" value="next" checked> 預測下個班別 (預設)</label>
-                    <label><input type="radio" name="shiftMode" id="shiftModePrevious" value="previous"> 回報當前/上個班別</label>
+                    <label><input type="radio" name="shiftMode" value="next" checked> 預測下個班別</label>
+                    <label><input type="radio" name="shiftMode" value="previous"> 回報當前/上個班別</label>
+                    <label><input type="radio" name="shiftMode" value="custom"> 自訂時間</label>
+                </div>
+                <!-- MODIFICATION: New container for custom time inputs -->
+                <div id="customTimeGroup" class="custom-time-inputs hidden">
+                    <input type="text" id="customStartTime" placeholder="開始 HH:MM">
+                    <input type="text" id="customEndTime" placeholder="結束 HH:MM">
                 </div>
             </div>
             
@@ -130,10 +136,10 @@
         const EVENT_NAME_KEY = 'savedEventName', EMERGENCY_PERSON_KEY = 'savedEmergencyPersonName',
               HANDOVER_CURRENT_OFFICER_KEY = 'savedCurrentOfficer', HANDOVER_SUBSTITUTE_KEY = 'savedIsSubstitute',
               HANDOVER_SUPERVISOR_PRESENT_KEY = 'savedSupervisorPresent', HANDOVER_SUPERVISOR_KEY = 'savedSupervisor',
-              HANDOVER_SHIFT_MODE_KEY = 'savedShiftMode'; // New key for saving mode
+              HANDOVER_SHIFT_MODE_KEY = 'savedShiftMode',
+              HANDOVER_CUSTOM_START_KEY = 'savedCustomStart', HANDOVER_CUSTOM_END_KEY = 'savedCustomEnd';
               
         document.addEventListener('DOMContentLoaded', () => {
-            // --- DOM Element Selection (Lazy selection within listener) ---
             const emergencyPane = document.getElementById('emergencyReport');
             emergencyPane.innerHTML = `
                 <div class="form-group"><label for="eventName">事件名稱</label><input type="text" id="eventName"></div>
@@ -154,7 +160,9 @@
             const handoverElements = {
                 resultDiv: document.getElementById('handoverResult'), copyBtn: document.getElementById('copyHandoverBtn'),
                 isSubstituteInput: document.getElementById('isSubstitute'), supervisorPresent: document.getElementById('supervisorPresent'),
-                supervisorGroup: document.getElementById('supervisorGroup'), shiftModeRadios: document.querySelectorAll('input[name="shiftMode"]')
+                supervisorGroup: document.getElementById('supervisorGroup'), shiftModeRadios: document.querySelectorAll('input[name="shiftMode"]'),
+                customTimeGroup: document.getElementById('customTimeGroup'), customStartTimeInput: document.getElementById('customStartTime'),
+                customEndTimeInput: document.getElementById('customEndTime')
             };
 
             const searchableInputs = {
@@ -167,7 +175,6 @@
             const tabButtons = document.querySelectorAll('.tab-button'), tabPanes = document.querySelectorAll('.tab-pane');
             const weekMap = ['日', '一', '二', '三', '四', '五', '六'];
 
-            // --- Main Functions ---
             function updateNextOfficers(selectedOfficerName) {
                 const currentIndex = shiftOfficers.indexOf(selectedOfficerName);
                 if (currentIndex === -1) return;
@@ -207,36 +214,42 @@
                 const currentHour = now.getHours();
                 let startTime = new Date(now), endTime = new Date(now);
 
+                // This block sets the DATES correctly.
                 if (mode === 'next') {
-                    // --- Logic to predict the NEXT shift ---
-                    if (currentHour >= 20) { // After 8 PM, next shift is tomorrow morning
-                        startTime.setDate(now.getDate() + 1); startTime.setHours(8, 0, 0, 0);
-                        endTime.setDate(now.getDate() + 1); endTime.setHours(20, 0, 0, 0);
-                    } else if (currentHour >= 8) { // Between 8 AM and 8 PM, next shift is tonight
-                        startTime.setHours(20, 0, 0, 0);
-                        endTime.setDate(now.getDate() + 1); endTime.setHours(8, 0, 0, 0);
-                    } else { // Before 8 AM, next shift is this morning
-                        startTime.setHours(8, 0, 0, 0);
-                        endTime.setHours(20, 0, 0, 0);
+                    if (currentHour >= 20) {
+                        startTime.setDate(now.getDate() + 1); startTime.setHours(8);
+                        endTime.setDate(now.getDate() + 1); endTime.setHours(20);
+                    } else if (currentHour >= 8) {
+                        startTime.setHours(20);
+                        endTime.setDate(now.getDate() + 1); endTime.setHours(8);
+                    } else {
+                        startTime.setHours(8);
+                        endTime.setHours(20);
                     }
-                } else { // mode === 'previous'
-                    // --- Logic to find the CURRENT or LAST shift ---
-                    if (currentHour >= 8 && currentHour < 20) { // Currently in day shift
-                        startTime.setHours(8, 0, 0, 0);
-                        endTime.setHours(20, 0, 0, 0);
-                    } else { // Currently in night shift
-                        if (currentHour >= 20) { // Early part of night shift
-                            startTime.setHours(20, 0, 0, 0);
-                            endTime.setDate(now.getDate() + 1); endTime.setHours(8, 0, 0, 0);
-                        } else { // Late part of night shift (after midnight)
-                            startTime.setDate(now.getDate() - 1); startTime.setHours(20, 0, 0, 0);
-                            endTime.setHours(8, 0, 0, 0);
+                } else { // previous or custom mode (custom uses the same DATE logic)
+                    if (currentHour >= 8 && currentHour < 20) {
+                        startTime.setHours(8);
+                        endTime.setHours(20);
+                    } else {
+                        if (currentHour >= 20) {
+                            startTime.setHours(20);
+                            endTime.setDate(now.getDate() + 1); endTime.setHours(8);
+                        } else {
+                            startTime.setDate(now.getDate() - 1); startTime.setHours(20);
+                            endTime.setHours(8);
                         }
                     }
                 }
-
-                const startTimeStr = startTime.getHours() === 8 ? "08:00" : "20:00";
-                const endTimeStr = endTime.getHours() === 8 ? "08:00" : "20:00";
+                
+                // This block sets the TIME strings.
+                let startTimeStr, endTimeStr;
+                if (mode === 'custom') {
+                    startTimeStr = handoverElements.customStartTimeInput.value || "00:00";
+                    endTimeStr = handoverElements.customEndTimeInput.value || "00:00";
+                } else {
+                    startTimeStr = startTime.getHours() === 8 ? "08:00" : "20:00";
+                    endTimeStr = endTime.getHours() === 8 ? "08:00" : "20:00";
+                }
 
                 const formatShiftDate = (date) => `${date.getMonth() + 1}/${date.getDate()}（${weekMap[date.getDay()]}）`;
                 const dateLine = `${formatShiftDate(startTime)} ${startTimeStr}-${formatShiftDate(endTime)} ${endTimeStr}`;
@@ -254,6 +267,8 @@
                 localStorage.setItem(HANDOVER_SUBSTITUTE_KEY, handoverElements.isSubstituteInput.checked);
                 localStorage.setItem(HANDOVER_SUPERVISOR_PRESENT_KEY, handoverElements.supervisorPresent.checked);
                 localStorage.setItem(HANDOVER_SUPERVISOR_KEY, searchableInputs.supervisor.input.value);
+                localStorage.setItem(HANDOVER_CUSTOM_START_KEY, handoverElements.customStartTimeInput.value);
+                localStorage.setItem(HANDOVER_CUSTOM_END_KEY, handoverElements.customEndTimeInput.value);
             }
 
             // --- Initialization ---
@@ -264,12 +279,11 @@
                 return (savedValue && dataArray.includes(savedValue)) ? savedValue : defaultValue;
             };
 
-            const savedMode = localStorage.getItem(HANDOVER_SHIFT_MODE_KEY);
-            if (savedMode === 'previous') {
-                document.getElementById('shiftModePrevious').checked = true;
-            } else {
-                document.getElementById('shiftModeNext').checked = true;
-            }
+            const savedMode = localStorage.getItem(HANDOVER_SHIFT_MODE_KEY) || 'next';
+            document.querySelector(`input[name="shiftMode"][value="${savedMode}"]`).checked = true;
+            handoverElements.customTimeGroup.classList.toggle('hidden', savedMode !== 'custom');
+            handoverElements.customStartTimeInput.value = localStorage.getItem(HANDOVER_CUSTOM_START_KEY) || "08:00";
+            handoverElements.customEndTimeInput.value = localStorage.getItem(HANDOVER_CUSTOM_END_KEY) || "20:00";
 
             const savedCurrentOfficer = loadSavedValue(HANDOVER_CURRENT_OFFICER_KEY, shiftOfficers, shiftOfficers[0]);
             searchableInputs.currentOfficer.input.value = savedCurrentOfficer;
@@ -303,9 +317,15 @@
             handoverElements.supervisorPresent.addEventListener('change', () => {
                 handoverElements.supervisorGroup.classList.toggle('hidden', !handoverElements.supervisorPresent.checked);
                 generateHandoverReport();
-});
+            });
             handoverElements.isSubstituteInput.addEventListener('change', generateHandoverReport);
-            handoverElements.shiftModeRadios.forEach(radio => radio.addEventListener('change', generateHandoverReport));
+            handoverElements.shiftModeRadios.forEach(radio => radio.addEventListener('change', () => {
+                const mode = document.querySelector('input[name="shiftMode"]:checked').value;
+                handoverElements.customTimeGroup.classList.toggle('hidden', mode !== 'custom');
+                generateHandoverReport();
+            }));
+            handoverElements.customStartTimeInput.addEventListener('input', generateHandoverReport);
+            handoverElements.customEndTimeInput.addEventListener('input', generateHandoverReport);
             
             Object.values(searchableInputs).forEach(config => {
                  if (config.input !== searchableInputs.currentOfficer.input) {
