@@ -28,8 +28,9 @@
             width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px;
             box-sizing: border-box; font-size: 16px; background-color: #fff;
         }
-        .checkbox-group { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
-        .checkbox-group label { margin-bottom: 0; }
+        .checkbox-group, .radio-group { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
+        .checkbox-group label, .radio-group label { margin-bottom: 0; font-weight: normal; }
+        .radio-group { gap: 15px; } /* Spacing for radio buttons */
         .hidden { display: none; }
         
         .options-container {
@@ -68,30 +69,19 @@
         </div>
 
         <div id="emergencyReport" class="tab-pane active">
-            <div class="form-group">
-                <label for="eventName">事件名稱</label>
-                <input type="text" id="eventName" value="0728豪雨">
-            </div>
-            <div class="form-group">
-                <label>回報日期與時間</label>
-                <div class="time-group">
-                    <div class="input-wrapper"><input type="number" id="rocYear"><span class="unit">年</span></div>
-                    <div class="input-wrapper"><input type="number" id="month"><span class="unit">月</span></div>
-                    <div class="input-wrapper"><input type="number" id="day"><span class="unit">日</span></div>
-                    <div class="input-wrapper"><input type="number" id="hour" min="0" max="23"><span class="unit">時</span></div>
-                    <div class="input-wrapper"><input type="number" id="minute" min="0" max="59"><span class="unit">分</span></div>
-                </div>
-            </div>
-            <div class="form-group">
-                <label for="personName">鐵道局值班人員</label>
-                <input type="text" id="personName" value="鄒承諺">
-            </div>
-            <button id="generateBtn">產生回報內容</button>
-            <div id="result"></div>
-            <button id="copyBtn" class="copy-btn">複製內容</button>
+            <!-- 緊急回報 HTML 內容 -->
         </div>
 
         <div id="handoverReport" class="tab-pane">
+            <!-- MODIFICATION: Added Shift Mode Choice -->
+            <div class="form-group">
+                <label>回報模式</label>
+                <div class="radio-group">
+                    <label><input type="radio" name="shiftMode" id="shiftModeNext" value="next" checked> 預測下個班別 (預設)</label>
+                    <label><input type="radio" name="shiftMode" id="shiftModePrevious" value="previous"> 回報當前/上個班別</label>
+                </div>
+            </div>
+            
             <div class="form-group">
                 <label for="currentOfficerInput">接班人</label>
                 <input type="text" id="currentOfficerInput" class="searchable-input" placeholder="點此選取或輸入關鍵字搜尋...">
@@ -134,44 +124,47 @@
     <script>
         // --- Lists of Personnel ---
         const supervisors = ["李科長大川", "陳主任巧穎", "林科長秀香", "李科長育欣", "張主任廣量", "陳主任建霖", "藍科長苑綾", "黃科長景明", "魏主任慶政"];
-        const shiftOfficers = ["吳文鴻", "張焜歆", "楊麗雯", "洪維達", "郭建志", "陳鑫源", "蕭志憲", "楊宗達", "林俊宏", "劉育銘", "戴振達", "林文濤", "陳金保", "林太祈", "柳旻佐", "林志明", "吳宏仁", "張愷文", "林昶宏", "胡元昌"];
+        const shiftOfficers = ["吳文鴻", "張焜歆", "楊麗雯", "洪維達", "郭建志", "陳鑫源", "蕭志憲", "楊宗達", "林俊宏", "劉育銘", "戴振達", "林文濤", "陳金保", "林太祈", "柳旻佐", "林志明", "吳宏仁", "林明達", "張愷文", "林昶宏", "胡元昌", "江明達"];
 
         // --- localStorage Keys ---
         const EVENT_NAME_KEY = 'savedEventName', EMERGENCY_PERSON_KEY = 'savedEmergencyPersonName',
               HANDOVER_CURRENT_OFFICER_KEY = 'savedCurrentOfficer', HANDOVER_SUBSTITUTE_KEY = 'savedIsSubstitute',
-              HANDOVER_SUPERVISOR_PRESENT_KEY = 'savedSupervisorPresent', HANDOVER_SUPERVISOR_KEY = 'savedSupervisor';
+              HANDOVER_SUPERVISOR_PRESENT_KEY = 'savedSupervisorPresent', HANDOVER_SUPERVISOR_KEY = 'savedSupervisor',
+              HANDOVER_SHIFT_MODE_KEY = 'savedShiftMode'; // New key for saving mode
               
         document.addEventListener('DOMContentLoaded', () => {
-            // --- DOM Element Selection ---
+            // --- DOM Element Selection (Lazy selection within listener) ---
+            const emergencyPane = document.getElementById('emergencyReport');
+            emergencyPane.innerHTML = `
+                <div class="form-group"><label for="eventName">事件名稱</label><input type="text" id="eventName"></div>
+                <div class="form-group"><label>回報日期與時間</label><div class="time-group">
+                    <div class="input-wrapper"><input type="number" id="rocYear"><span class="unit">年</span></div><div class="input-wrapper"><input type="number" id="month"><span class="unit">月</span></div>
+                    <div class="input-wrapper"><input type="number" id="day"><span class="unit">日</span></div><div class="input-wrapper"><input type="number" id="hour" min="0" max="23"><span class="unit">時</span></div>
+                    <div class="input-wrapper"><input type="number" id="minute" min="0" max="59"><span class="unit">分</span></div></div></div>
+                <div class="form-group"><label for="personName">鐵道局值班人員</label><input type="text" id="personName"></div>
+                <button id="generateBtn">產生回報內容</button><div id="result"></div><button id="copyBtn" class="copy-btn">複製內容</button>
+            `;
             const emergencyElements = {
-                pane: document.getElementById('emergencyReport'),
-                eventNameInput: document.getElementById('eventName'),
-                personNameInput: document.getElementById('personName'),
-                resultDiv: document.getElementById('result'),
-                generateBtn: document.getElementById('generateBtn'),
-                copyBtn: document.getElementById('copyBtn'),
-                rocYearInput: document.getElementById('rocYear'),
-                monthInput: document.getElementById('month'),
-                dayInput: document.getElementById('day'),
-                hourInput: document.getElementById('hour'),
-                minuteInput: document.getElementById('minute')
+                eventNameInput: document.getElementById('eventName'), personNameInput: document.getElementById('personName'), resultDiv: document.getElementById('result'),
+                generateBtn: document.getElementById('generateBtn'), copyBtn: document.getElementById('copyBtn'),
+                rocYearInput: document.getElementById('rocYear'), monthInput: document.getElementById('month'), dayInput: document.getElementById('day'),
+                hourInput: document.getElementById('hour'), minuteInput: document.getElementById('minute')
             };
+
             const handoverElements = {
-                pane: document.getElementById('handoverReport'),
-                resultDiv: document.getElementById('handoverResult'),
-                copyBtn: document.getElementById('copyHandoverBtn'),
-                isSubstituteInput: document.getElementById('isSubstitute'),
-                supervisorPresent: document.getElementById('supervisorPresent'),
-                supervisorGroup: document.getElementById('supervisorGroup')
+                resultDiv: document.getElementById('handoverResult'), copyBtn: document.getElementById('copyHandoverBtn'),
+                isSubstituteInput: document.getElementById('isSubstitute'), supervisorPresent: document.getElementById('supervisorPresent'),
+                supervisorGroup: document.getElementById('supervisorGroup'), shiftModeRadios: document.querySelectorAll('input[name="shiftMode"]')
             };
+
             const searchableInputs = {
                 currentOfficer: { input: document.getElementById('currentOfficerInput'), options: document.getElementById('currentOfficerOptions'), data: shiftOfficers },
                 supervisor: { input: document.getElementById('supervisorInput'), options: document.getElementById('supervisorOptions'), data: supervisors },
                 nextOfficer1: { input: document.getElementById('nextOfficer1Input'), options: document.getElementById('nextOfficer1Options'), data: shiftOfficers },
                 nextOfficer2: { input: document.getElementById('nextOfficer2Input'), options: document.getElementById('nextOfficer2Options'), data: shiftOfficers }
             };
-            const tabButtons = document.querySelectorAll('.tab-button'),
-                  tabPanes = document.querySelectorAll('.tab-pane');
+
+            const tabButtons = document.querySelectorAll('.tab-button'), tabPanes = document.querySelectorAll('.tab-pane');
             const weekMap = ['日', '一', '二', '三', '四', '五', '六'];
 
             // --- Main Functions ---
@@ -209,21 +202,41 @@
             }
             
             function generateHandoverReport() {
+                const mode = document.querySelector('input[name="shiftMode"]:checked').value;
                 const now = new Date();
-                let startTime = new Date(), endTime = new Date();
-                let startTimeStr, endTimeStr;
-                if (now.getHours() >= 20) {
-                    startTime.setDate(now.getDate() + 1); startTime.setHours(8, 0, 0, 0);
-                    endTime.setDate(now.getDate() + 1); endTime.setHours(20, 0, 0, 0);
-                } else if (now.getHours() >= 8) {
-                    startTime.setHours(20, 0, 0, 0);
-                    endTime.setDate(now.getDate() + 1); endTime.setHours(8, 0, 0, 0);
-                } else {
-                    startTime.setHours(8, 0, 0, 0);
-                    endTime.setHours(20, 0, 0, 0);
+                const currentHour = now.getHours();
+                let startTime = new Date(now), endTime = new Date(now);
+
+                if (mode === 'next') {
+                    // --- Logic to predict the NEXT shift ---
+                    if (currentHour >= 20) { // After 8 PM, next shift is tomorrow morning
+                        startTime.setDate(now.getDate() + 1); startTime.setHours(8, 0, 0, 0);
+                        endTime.setDate(now.getDate() + 1); endTime.setHours(20, 0, 0, 0);
+                    } else if (currentHour >= 8) { // Between 8 AM and 8 PM, next shift is tonight
+                        startTime.setHours(20, 0, 0, 0);
+                        endTime.setDate(now.getDate() + 1); endTime.setHours(8, 0, 0, 0);
+                    } else { // Before 8 AM, next shift is this morning
+                        startTime.setHours(8, 0, 0, 0);
+                        endTime.setHours(20, 0, 0, 0);
+                    }
+                } else { // mode === 'previous'
+                    // --- Logic to find the CURRENT or LAST shift ---
+                    if (currentHour >= 8 && currentHour < 20) { // Currently in day shift
+                        startTime.setHours(8, 0, 0, 0);
+                        endTime.setHours(20, 0, 0, 0);
+                    } else { // Currently in night shift
+                        if (currentHour >= 20) { // Early part of night shift
+                            startTime.setHours(20, 0, 0, 0);
+                            endTime.setDate(now.getDate() + 1); endTime.setHours(8, 0, 0, 0);
+                        } else { // Late part of night shift (after midnight)
+                            startTime.setDate(now.getDate() - 1); startTime.setHours(20, 0, 0, 0);
+                            endTime.setHours(8, 0, 0, 0);
+                        }
+                    }
                 }
-                startTimeStr = startTime.getHours() === 8 ? "08:00" : "20:00";
-                endTimeStr = endTime.getHours() === 8 ? "08:00" : "20:00";
+
+                const startTimeStr = startTime.getHours() === 8 ? "08:00" : "20:00";
+                const endTimeStr = endTime.getHours() === 8 ? "08:00" : "20:00";
 
                 const formatShiftDate = (date) => `${date.getMonth() + 1}/${date.getDate()}（${weekMap[date.getDay()]}）`;
                 const dateLine = `${formatShiftDate(startTime)} ${startTimeStr}-${formatShiftDate(endTime)} ${endTimeStr}`;
@@ -235,6 +248,8 @@
                 const nextOfficersLine = `\n後二班依序由${searchableInputs.nextOfficer1.input.value}、${searchableInputs.nextOfficer2.input.value}輪值。`;
                 handoverElements.resultDiv.textContent = dateLine + "\n" + officerLine + supervisorLine + nextOfficersLine;
                 
+                // Save state
+                localStorage.setItem(HANDOVER_SHIFT_MODE_KEY, mode);
                 localStorage.setItem(HANDOVER_CURRENT_OFFICER_KEY, searchableInputs.currentOfficer.input.value);
                 localStorage.setItem(HANDOVER_SUBSTITUTE_KEY, handoverElements.isSubstituteInput.checked);
                 localStorage.setItem(HANDOVER_SUPERVISOR_PRESENT_KEY, handoverElements.supervisorPresent.checked);
@@ -248,6 +263,13 @@
                 const savedValue = localStorage.getItem(key);
                 return (savedValue && dataArray.includes(savedValue)) ? savedValue : defaultValue;
             };
+
+            const savedMode = localStorage.getItem(HANDOVER_SHIFT_MODE_KEY);
+            if (savedMode === 'previous') {
+                document.getElementById('shiftModePrevious').checked = true;
+            } else {
+                document.getElementById('shiftModeNext').checked = true;
+            }
 
             const savedCurrentOfficer = loadSavedValue(HANDOVER_CURRENT_OFFICER_KEY, shiftOfficers, shiftOfficers[0]);
             searchableInputs.currentOfficer.input.value = savedCurrentOfficer;
@@ -272,7 +294,8 @@
             emergencyElements.generateBtn.addEventListener('click', () => {
                 localStorage.setItem(EVENT_NAME_KEY, emergencyElements.eventNameInput.value);
                 localStorage.setItem(EMERGENCY_PERSON_KEY, emergencyElements.personNameInput.value);
-                emergencyElements.resultDiv.textContent = `${emergencyElements.eventNameInput.value}緊急應變小組${emergencyElements.rocYearInput.value}年${emergencyElements.monthInput.value}月${emergencyElements.dayInput.value}日${emergencyElements.hourInput.value}時${emergencyElements.minuteInput.value}分回報鐵道局值勤人員（${emergencyElements.personNameInput.value}）本分局工區一切正常`;
+                const { eventNameInput, rocYearInput, monthInput, dayInput, hourInput, minuteInput, personNameInput, resultDiv } = emergencyElements;
+                resultDiv.textContent = `${eventNameInput.value}緊急應變小組${rocYearInput.value}年${monthInput.value}月${dayInput.value}日${hourInput.value}時${minuteInput.value}分回報鐵道局值勤人員（${personNameInput.value}）本分局工區一切正常`;
             });
             emergencyElements.copyBtn.addEventListener('click', () => copyToClipboard('result'));
             handoverElements.copyBtn.addEventListener('click', () => copyToClipboard('handoverResult'));
@@ -280,8 +303,9 @@
             handoverElements.supervisorPresent.addEventListener('change', () => {
                 handoverElements.supervisorGroup.classList.toggle('hidden', !handoverElements.supervisorPresent.checked);
                 generateHandoverReport();
-            });
+});
             handoverElements.isSubstituteInput.addEventListener('change', generateHandoverReport);
+            handoverElements.shiftModeRadios.forEach(radio => radio.addEventListener('change', generateHandoverReport));
             
             Object.values(searchableInputs).forEach(config => {
                  if (config.input !== searchableInputs.currentOfficer.input) {
@@ -289,7 +313,6 @@
                 }
             });
 
-            // THIS IS THE FIX: Tab switching logic
             tabButtons.forEach(button => {
                 button.addEventListener('click', () => {
                     const targetTab = button.getAttribute('data-tab');
