@@ -81,7 +81,6 @@
                     <label><input type="radio" name="shiftMode" value="previous"> 回報當前/上個班別</label>
                     <label><input type="radio" name="shiftMode" value="custom"> 自訂時間</label>
                 </div>
-                <!-- MODIFICATION: New container for custom time inputs -->
                 <div id="customTimeGroup" class="custom-time-inputs hidden">
                     <input type="text" id="customStartTime" placeholder="開始 HH:MM">
                     <input type="text" id="customEndTime" placeholder="結束 HH:MM">
@@ -175,6 +174,16 @@
             const tabButtons = document.querySelectorAll('.tab-button'), tabPanes = document.querySelectorAll('.tab-pane');
             const weekMap = ['日', '一', '二', '三', '四', '五', '六'];
 
+            // --- THIS IS THE FIX ---
+            function toggleCustomTimeVisibility() {
+                const selectedMode = document.querySelector('input[name="shiftMode"]:checked').value;
+                if (selectedMode === 'custom') {
+                    handoverElements.customTimeGroup.classList.remove('hidden');
+                } else {
+                    handoverElements.customTimeGroup.classList.add('hidden');
+                }
+            }
+            
             function updateNextOfficers(selectedOfficerName) {
                 const currentIndex = shiftOfficers.indexOf(selectedOfficerName);
                 if (currentIndex === -1) return;
@@ -196,9 +205,7 @@
                         optionEl.addEventListener('click', () => {
                             config.input.value = item;
                             config.options.style.display = 'none';
-                            if (config === searchableInputs.currentOfficer) {
-                                updateNextOfficers(item);
-                            }
+                            if (config === searchableInputs.currentOfficer) { updateNextOfficers(item); }
                             generateHandoverReport();
                         });
                         config.options.appendChild(optionEl);
@@ -214,34 +221,26 @@
                 const currentHour = now.getHours();
                 let startTime = new Date(now), endTime = new Date(now);
 
-                // This block sets the DATES correctly.
                 if (mode === 'next') {
                     if (currentHour >= 20) {
-                        startTime.setDate(now.getDate() + 1); startTime.setHours(8);
-                        endTime.setDate(now.getDate() + 1); endTime.setHours(20);
+                        startTime.setDate(now.getDate() + 1); startTime.setHours(8); endTime.setDate(now.getDate() + 1); endTime.setHours(20);
                     } else if (currentHour >= 8) {
-                        startTime.setHours(20);
-                        endTime.setDate(now.getDate() + 1); endTime.setHours(8);
+                        startTime.setHours(20); endTime.setDate(now.getDate() + 1); endTime.setHours(8);
                     } else {
-                        startTime.setHours(8);
-                        endTime.setHours(20);
+                        startTime.setHours(8); endTime.setHours(20);
                     }
-                } else { // previous or custom mode (custom uses the same DATE logic)
+                } else { 
                     if (currentHour >= 8 && currentHour < 20) {
-                        startTime.setHours(8);
-                        endTime.setHours(20);
+                        startTime.setHours(8); endTime.setHours(20);
                     } else {
                         if (currentHour >= 20) {
-                            startTime.setHours(20);
-                            endTime.setDate(now.getDate() + 1); endTime.setHours(8);
+                            startTime.setHours(20); endTime.setDate(now.getDate() + 1); endTime.setHours(8);
                         } else {
-                            startTime.setDate(now.getDate() - 1); startTime.setHours(20);
-                            endTime.setHours(8);
+                            startTime.setDate(now.getDate() - 1); startTime.setHours(20); endTime.setHours(8);
                         }
                     }
                 }
                 
-                // This block sets the TIME strings.
                 let startTimeStr, endTimeStr;
                 if (mode === 'custom') {
                     startTimeStr = handoverElements.customStartTimeInput.value || "00:00";
@@ -255,13 +254,10 @@
                 const dateLine = `${formatShiftDate(startTime)} ${startTimeStr}-${formatShiftDate(endTime)} ${endTimeStr}`;
                 const officerLine = `接班人：${searchableInputs.currentOfficer.input.value}${handoverElements.isSubstituteInput.checked ? '(代值)' : ''}。`;
                 let supervisorLine = "";
-                if (handoverElements.supervisorPresent.checked) {
-                    supervisorLine = `\n執勤主管：${searchableInputs.supervisor.input.value}`;
-                }
+                if (handoverElements.supervisorPresent.checked) { supervisorLine = `\n執勤主管：${searchableInputs.supervisor.input.value}`; }
                 const nextOfficersLine = `\n後二班依序由${searchableInputs.nextOfficer1.input.value}、${searchableInputs.nextOfficer2.input.value}輪值。`;
                 handoverElements.resultDiv.textContent = dateLine + "\n" + officerLine + supervisorLine + nextOfficersLine;
                 
-                // Save state
                 localStorage.setItem(HANDOVER_SHIFT_MODE_KEY, mode);
                 localStorage.setItem(HANDOVER_CURRENT_OFFICER_KEY, searchableInputs.currentOfficer.input.value);
                 localStorage.setItem(HANDOVER_SUBSTITUTE_KEY, handoverElements.isSubstituteInput.checked);
@@ -281,7 +277,7 @@
 
             const savedMode = localStorage.getItem(HANDOVER_SHIFT_MODE_KEY) || 'next';
             document.querySelector(`input[name="shiftMode"][value="${savedMode}"]`).checked = true;
-            handoverElements.customTimeGroup.classList.toggle('hidden', savedMode !== 'custom');
+            toggleCustomTimeVisibility(); // <-- FIX: Call the function on load
             handoverElements.customStartTimeInput.value = localStorage.getItem(HANDOVER_CUSTOM_START_KEY) || "08:00";
             handoverElements.customEndTimeInput.value = localStorage.getItem(HANDOVER_CUSTOM_END_KEY) || "20:00";
 
@@ -319,11 +315,13 @@
                 generateHandoverReport();
             });
             handoverElements.isSubstituteInput.addEventListener('change', generateHandoverReport);
+            
+            // --- FIX: Correctly structured event listener ---
             handoverElements.shiftModeRadios.forEach(radio => radio.addEventListener('change', () => {
-                const mode = document.querySelector('input[name="shiftMode"]:checked').value;
-                handoverElements.customTimeGroup.classList.toggle('hidden', mode !== 'custom');
+                toggleCustomTimeVisibility();
                 generateHandoverReport();
             }));
+
             handoverElements.customStartTimeInput.addEventListener('input', generateHandoverReport);
             handoverElements.customEndTimeInput.addEventListener('input', generateHandoverReport);
             
