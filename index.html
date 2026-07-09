@@ -64,7 +64,7 @@
         <h1>勤務回報產生器</h1>
 
         <div class="tab-nav">
-            <button class="tab-button active" data-tab="emergencyReport">緊急回報</button>
+            <button class="tab-button active" data-tab="emergencyReport">定期回報</button>
             <button class="tab-button" data-tab="handoverReport">接班回報</button>
         </div>
 
@@ -263,7 +263,7 @@
             handoverElements.supervisorPresent.checked = (localStorage.getItem(HANDOVER_SUPERVISOR_PRESENT_KEY) === 'true');
             
             emergencyElements.eventNameInput.value = localStorage.getItem(EVENT_NAME_KEY) || "巴威颱風";
-            emergencyElements.personNameInput.value = localStorage.getItem(EMERGENCY_PERSON_KEY) || "鄒承諺";
+            emergencyElements.personNameInput.value = localStorage.getItem(EMERGENCY_PERSON_KEY) || "○○○";
             const now = new Date();
             emergencyElements.rocYearInput.value = now.getFullYear() - 1911;
             emergencyElements.monthInput.value = now.getMonth() + 1;
